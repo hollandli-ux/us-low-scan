@@ -1,0 +1,14 @@
+# 运行产物
+data/
+reports/
+logs/
+*.db
+*.db-wal
+*.db-shm
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
