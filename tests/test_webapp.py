@@ -14,7 +14,7 @@ from pathlib import Path
 
 from tests.support import test_settings
 
-from us_low_scan import calendar_us, db, pipeline, webapp
+from us_low_scan import calendar_us, db, pipeline, report, webapp
 from us_low_scan.providers import get_provider
 
 
@@ -34,6 +34,8 @@ class DashboardCase(unittest.TestCase):
         cls.scan = pipeline.run_scan(
             cls.settings, session=cls.session, conn=cls.conn, provider=cls.provider
         )
+        # /file/... 下载接口依赖落盘的报告文件，所以这里要真的写一次
+        report.write_outputs(cls.scan, cls.settings)
         cls.dashboard = webapp.Dashboard(cls.settings)
 
     @classmethod
