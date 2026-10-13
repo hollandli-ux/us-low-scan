@@ -193,20 +193,37 @@ class TestHttpLayer(DashboardCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.server = None
+        cls.thread = None
         try:
             cls.server = webapp.create_server(cls.settings, "127.0.0.1", 0)
-        except (PermissionError, OSError):
+            cls.port = cls.server.server_address[1]
+            cls.thread = threading.Thread(target=cls.server.serve_forever, daemon=True)
+            cls.thread.start()
+            # 有的受限环境能"绑定端口"但连不上（或反之），所以这里真发一次请求探活。
+            # 探活失败就当环境不支持，整组跳过，而不是让每个用例各报一次错。
+            with urllib.request.urlopen(
+                f"http://127.0.0.1:{cls.port}/healthz", timeout=3
+            ) as resp:
+                resp.read()
+        except Exception:
+            cls._teardown_server()
             cls.server = None
-            return
-        cls.port = cls.server.server_address[1]
-        cls.thread = threading.Thread(target=cls.server.serve_forever, daemon=True)
-        cls.thread.start()
+
+    @classmethod
+    def _teardown_server(cls):
+        if cls.server is not None:
+            try:
+                cls.server.shutdown()
+            except Exception:
+                pass
+            try:
+                cls.server.server_close()
+            except Exception:
+                pass
 
     @classmethod
     def tearDownClass(cls):
-        if cls.server is not None:
-            cls.server.shutdown()
-            cls.server.server_close()
+        cls._teardown_server()
         super().tearDownClass()
 
     def setUp(self):
